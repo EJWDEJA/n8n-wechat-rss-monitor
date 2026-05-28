@@ -1,0 +1,190 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -16,
+        0
+      ],
+      "id": "2df8ba7d-ef43-4c8a-8fa7-8ac39bf85112",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "http://feed.smzdm.com",
+        "options": {
+          "customFields": ""
+        }
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        192,
+        0
+      ],
+      "id": "8be08379-4a14-44e4-a6e5-c5011417035b",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "id": "12e7b678-d4ae-4af1-b575-b0ffabcaae2b",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 获取当前处理的商品标题\nconst title = $input.item.json.title || '';\n\n// 检查标题里有没有这些“神价”代名词\nconst isSpamPrice = /神价|漏价|BUG价|百亿|元|垃圾桶|错误价|0元/i.test(title);\n\n// 给这个商品打一个标签：isUrgent（是否紧急）。如果是神价就是 true，普通优惠就是 false\n$input.item.json.isUrgent = isSpamPrice;\n\nreturn $input.item;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        0
+      ],
+      "id": "30231913-d3db-46f3-8b9f-a78230063750",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4b449186-8b65-4f21-a507-ba65e76ef095",
+              "leftValue": true,
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "85913dea-0097-4f51-a895-4d7d645f4773",
+              "leftValue": false,
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        0
+      ],
+      "id": "0e25a01e-aa40-40a3-9f27-33ffa42c1750",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_WECHAT_KEY",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"msgtype\": \"markdown\",\n  \"markdown\": {\n    \"content\": \"🚨 **发现线报：疑似电商神价/手慢无！**\\n\\n>🔥 **商品名称**: <font color=\\\"warning\\\">{{ $json.title }}</font>\\n>⏰ **发现时间**: {{ $json.pubDate }}\\n\\n📋 [点击直达抢购链接]({{ $json.link }})\"\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1024,
+        -96
+      ],
+      "id": "8106e6b7-ec87-4069-b49a-50b5a31a3bb5",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "36320f40107f999cfdce2ae0961fb44cc5334b39b678924c362a7b6a8c1358f7"
+  }
+}
